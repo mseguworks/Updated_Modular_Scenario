@@ -1,20 +1,48 @@
-from rule_engine import SmokingRuleEngine
-from data_generator import generate_orders, generate_trades, generate_market_depth
+import streamlit as st
 import pandas as pd
+from data_generator import generate_orders, generate_trades, generate_market_depth
+from rule_engine import SmokingRuleEngine
 
-# Generate synthetic data
-orders = generate_orders(10)
-trades = generate_trades(5)
-market_depth = generate_market_depth()
+# Streamlit UI
+st.set_page_config(page_title="Market Abuse Scenario Simulator", layout="wide")
+st.title("Market Abuse Scenario Simulator")
 
-# Initialize rule engine
-engine = SmokingRuleEngine()
+st.markdown("""
+This app simulates synthetic market data (orders, trades, and market depth) and applies a rule engine to detect potential market abuse scenarios such as 'Smoking'.
+""")
 
-# Evaluate alerts
-alerts = engine.evaluate(orders, trades, market_depth)
+# Sidebar configuration
+st.sidebar.header("Simulation Settings")
+num_orders = st.sidebar.slider("Number of Orders", min_value=5, max_value=100, value=10)
+num_trades = st.sidebar.slider("Number of Trades", min_value=1, max_value=50, value=5)
 
-# Convert to DataFrame and save
-df = pd.DataFrame(alerts)
-df.to_csv("alerts.csv", index=False)
+if st.sidebar.button("Run Simulation"):
+    # Generate synthetic data
+    orders = generate_orders(num_orders)
+    trades = generate_trades(num_trades)
+    market_depth = generate_market_depth()
 
-print("Alerts generated and saved to alerts.csv")
+    # Display generated data
+    st.subheader("Generated Orders")
+    st.dataframe(pd.DataFrame([o.__dict__ for o in orders]))
+
+    st.subheader("Generated Trades")
+    st.dataframe(pd.DataFrame([t.__dict__ for t in trades]))
+
+    st.subheader("Generated Market Depth")
+    st.dataframe(pd.DataFrame([d.__dict__ for d in market_depth]))
+
+    # Evaluate alerts
+    engine = SmokingRuleEngine()
+    alerts = engine.evaluate(orders, trades, market_depth)
+    alerts_df = pd.DataFrame(alerts)
+
+    st.subheader("Generated Alerts")
+    if not alerts_df.empty:
+        st.dataframe(alerts_df)
+        csv = alerts_df.to_csv(index=False).encode('utf-8')
+        st.download_button("Download Alerts as CSV", data=csv, file_name="alerts.csv", mime="text/csv")
+    else:
+        st.info("No alerts generated based on the current simulation.")
+else:
+    st.info("Adjust the settings in the sidebar and click 'Run Simulation' to begin.")
