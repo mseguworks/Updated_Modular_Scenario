@@ -1,6 +1,6 @@
-import datetime
-from typing import List, Dict, Optional
 from dataclasses import dataclass
+from typing import List, Dict
+import datetime
 
 
 @dataclass
@@ -38,6 +38,9 @@ class MarketDepth:
     Side: str
     Price: float
     Quantity: float
+    ReceivedTime: datetime.datetime
+    FeedId: str
+    BaseCcyQuantity: float
 
 
 @dataclass
@@ -70,6 +73,7 @@ class SmokingRuleEngine:
             for trade in trades:
                 if trade.EventType in ['TN', 'TR'] and trade.BaseCcyValue > self.near_threshold:
                     near_side_events.append(trade)
+
         for order in orders:
             if order.EventType in ['Filled', 'Partially Filled']:
                 notional = order.BaseCcyQty if order.EventType == 'Filled' else order.BaseCcyQty - order.BaseCcyLeavesQty
@@ -125,3 +129,4 @@ class SmokingRuleEngine:
             'Trader': 'N/A',
             'AlertDescription': reason
         }
+
