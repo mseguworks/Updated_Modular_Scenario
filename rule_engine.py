@@ -1,9 +1,9 @@
-from dataclasses import dataclass
-from typing import List, Dict
+from dataclasses import dataclass, field
 import datetime
+from typing import List, Dict
 
 
-@dataclass
+@dataclass(frozen=True)
 class Order:
     OrderId: str
     EventType: str
@@ -17,7 +17,7 @@ class Order:
     ReceivedTime: datetime.datetime
 
 
-@dataclass
+@dataclass(frozen=True)
 class Trade:
     TradeId: str
     EventType: str
@@ -29,7 +29,7 @@ class Trade:
     ReceivedTime: datetime.datetime
 
 
-@dataclass
+@dataclass(frozen=True)
 class MarketDepth:
     InstrumentCode: str
     VenueId: str
@@ -73,7 +73,6 @@ class SmokingRuleEngine:
             for trade in trades:
                 if trade.EventType in ['TN', 'TR'] and trade.BaseCcyValue > self.near_threshold:
                     near_side_events.append(trade)
-
         for order in orders:
             if order.EventType in ['Filled', 'Partially Filled']:
                 notional = order.BaseCcyQty if order.EventType == 'Filled' else order.BaseCcyQty - order.BaseCcyLeavesQty
