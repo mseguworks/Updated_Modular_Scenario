@@ -1,7 +1,9 @@
-import random
+# Regenerate data_generator.py and requirements.txt for Streamlit deployment
+
+# Write the updated data_generator.py file
+data_generator_code = '''import random
 import datetime
 from rule_engine import Order, Trade, MarketDepth
-
 
 def generate_orders(n=10):
     sides = ['Buy', 'Sell']
@@ -26,7 +28,6 @@ def generate_orders(n=10):
         ))
     return orders
 
-
 def generate_trades(n=5):
     sides = ['Buy', 'Sell']
     trades = []
@@ -43,7 +44,6 @@ def generate_trades(n=5):
             ReceivedTime=datetime.datetime.now() + datetime.timedelta(seconds=i)
         ))
     return trades
-
 
 def generate_market_depth():
     depth = []
@@ -62,3 +62,18 @@ def generate_market_depth():
                 BaseCcyQuantity=1_000_000
             ))
     return depth
+'''
+
+with open("data_generator.py", "w") as f:
+    f.write(data_generator_code)
+
+# Write the updated requirements.txt file
+requirements = '''streamlit
+pandas
+'''
+
+with open("requirements.txt", "w") as f:
+    f.write(requirements)
+
+print("Updated data_generator.py and requirements.txt have been generated.")
+
