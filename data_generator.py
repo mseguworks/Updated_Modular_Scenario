@@ -1,3 +1,6 @@
+# Create the data_generator.py file with the required functions
+
+data_generator_code = '''
 import random
 import datetime
 from rule_engine import Order, Trade, MarketDepth
@@ -59,3 +62,10 @@ def generate_market_depth():
                 BaseCcyQuantity=1_000_000
             ))
     return depth
+'''
+
+with open("data_generator.py", "w") as f:
+    f.write(data_generator_code)
+
+print("data_generator.py has been created successfully.")
+
