@@ -4,7 +4,9 @@ from data_generator import (
     generate_orders,
     generate_trades,
     generate_market_depth,
-    generate_orders_from_uploaded_data
+    generate_orders_from_uploaded_data,
+    generate_trades_from_uploaded_data,
+    generate_market_depth_from_uploaded_data
 )
 from rule_engine import SmokingRuleEngine, Order, Trade, MarketDepth
 
@@ -28,47 +30,51 @@ uploaded_depth = st.sidebar.file_uploader("Upload Market Depth CSV", type=["csv"
 
 # Run simulation
 if st.sidebar.button("Run Simulation"):
-    # Load uploaded or generate synthetic market depth
+    # Market Depth
     if uploaded_depth is not None:
         depth_df = pd.read_csv(uploaded_depth)
         st.subheader("Uploaded Market Depth")
         st.dataframe(depth_df)
-        market_depth = depth_df.to_dict(orient="records")
+        market_depth_df = generate_market_depth_from_uploaded_data(depth_df)
+        st.subheader("Simulated Market Depth Based on Uploaded Data")
+        st.dataframe(market_depth_df)
     else:
-        market_depth = generate_market_depth()
+        market_depth_df = pd.DataFrame(generate_market_depth())
         st.subheader("Generated Market Depth")
-        st.dataframe(pd.DataFrame(market_depth))
+        st.dataframe(market_depth_df)
 
-    # Load uploaded or generate synthetic trades
+    # Trades
     if uploaded_trades is not None:
         trades_df = pd.read_csv(uploaded_trades)
         st.subheader("Uploaded Trades")
         st.dataframe(trades_df)
-        trades = trades_df.to_dict(orient="records")
+        trades_df = generate_trades_from_uploaded_data(trades_df, num_trades)
+        st.subheader("Simulated Trades Based on Uploaded Data")
+        st.dataframe(trades_df)
     else:
-        trades = generate_trades(num_trades)
+        trades_df = pd.DataFrame(generate_trades(num_trades))
         st.subheader("Generated Trades")
-        st.dataframe(pd.DataFrame(trades))
+        st.dataframe(trades_df)
 
-    # Load uploaded or generate synthetic orders
+    # Orders
     if uploaded_orders is not None:
         orders_df = pd.read_csv(uploaded_orders)
         st.subheader("Uploaded Orders")
         st.dataframe(orders_df)
-        orders = generate_orders_from_uploaded_data(orders_df, num_orders)
+        orders_df = generate_orders_from_uploaded_data(orders_df, num_orders)
         st.subheader("Simulated Orders Based on Uploaded Data")
-        st.dataframe(orders)
+        st.dataframe(orders_df)
     else:
-        orders = pd.DataFrame(generate_orders(num_orders))
+        orders_df = pd.DataFrame(generate_orders(num_orders))
         st.subheader("Generated Orders")
-        st.dataframe(orders)
+        st.dataframe(orders_df)
 
     # Evaluate alerts
     engine = SmokingRuleEngine()
     try:
-        orders_list = [Order(**o) for o in orders.to_dict(orient="records")]
-        trades_list = [Trade(**t) for t in trades]
-        depth_list = [MarketDepth(**d) for d in market_depth]
+        orders_list = [Order(**o) for o in orders_df.to_dict(orient="records")]
+        trades_list = [Trade(**t) for t in trades_df.to_dict(orient="records")]
+        depth_list = [MarketDepth(**d) for d in market_depth_df.to_dict(orient="records")]
 
         alerts = engine.evaluate(orders_list, trades_list, depth_list)
         alerts_df = pd.DataFrame(alerts)
@@ -83,8 +89,8 @@ if st.sidebar.button("Run Simulation"):
     except Exception as e:
         st.error(f"Error during alert evaluation: {e}")
 
-    # Allow download of simulated orders
-    csv_orders = orders.to_csv(index=False).encode('utf-8')
+    # Download simulated orders
+    csv_orders = orders_df.to_csv(index=False).encode('utf-8')
     st.download_button("Download Simulated Orders as CSV", data=csv_orders, file_name="simulated_orders.csv", mime="text/csv")
 else:
     st.info("Adjust the settings in the sidebar and click 'Run Simulation' to begin.")
