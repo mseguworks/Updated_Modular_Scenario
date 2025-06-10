@@ -47,7 +47,7 @@ def generate_market_depth():
         })
     return depth
 
-def generate_orders_from_uploaded_data(df: pd.DataFrame, num_orders: int, intensity: float) -> pd.DataFrame:
+def generate_orders_from_uploaded_data(df: pd.DataFrame, num_orders: int) -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()
 
@@ -59,9 +59,9 @@ def generate_orders_from_uploaded_data(df: pd.DataFrame, num_orders: int, intens
         order = template.copy()
 
         if 'price' in order:
-            order['price'] = round(float(order['price']) * (1 + random.uniform(-0.01, 0.01) * intensity), 2)
+            order['price'] = round(float(order['price']) * (1 + random.uniform(-0.01, 0.01)), 2)
         if 'quantity' in order:
-            order['quantity'] = int(float(order['quantity']) * (1 + random.uniform(-0.1, 0.1) * intensity))
+            order['quantity'] = int(float(order['quantity']) * (1 + random.uniform(-0.1, 0.1)))
         if 'timestamp' in order:
             order['timestamp'] = (base_time + timedelta(seconds=random.randint(0, 60))).isoformat()
 
