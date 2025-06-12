@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict
 
 @dataclass(frozen=True)
@@ -13,7 +13,7 @@ class Order:
     Price: float
     MarketId: str
     InstrumentCode: str
-    ReceivedTime: datetime.datetime
+    ReceivedTime: datetime
 
 @dataclass(frozen=True)
 class Trade:
@@ -24,18 +24,18 @@ class Trade:
     Price: float
     MarketId: str
     InstrumentCode: str
-    ReceivedTime: datetime.datetime
+    ReceivedTime: datetime
 
 @dataclass(frozen=True)
 class MarketDepth:
     InstrumentCode: str
     VenueId: str
-    MarketTimestamp: datetime.datetime
+    MarketTimestamp: datetime
     BookLevel: int
     Side: str
     Price: float
     Quantity: float
-    ReceivedTime: datetime.datetime
+    ReceivedTime: datetime
     FeedId: str
     BaseCcyQuantity: float
 
@@ -43,7 +43,7 @@ class MarketDepth:
 class Alert:
     AlertId: int
     ScenarioId: str
-    AlertTimestamp: datetime.datetime
+    AlertTimestamp: datetime
     PartyId: str
     MarketId: str
     InstrumentId: str
@@ -52,12 +52,12 @@ class Alert:
     AlertDescription: str
 
 class SmokingRuleEngine:
-    def __init__(self, trade_inclusion_flag=True, near_threshold=5_000_000, far_threshold=5_000_000,
+    def __init__(self, trade_inclusion_flag=True, near_threshold=1_000_000, far_threshold=1_000_000,
                  lookup_window_sec=45, depth_level=1):
         self.trade_inclusion_flag = trade_inclusion_flag
         self.near_threshold = near_threshold
         self.far_threshold = far_threshold
-        self.lookup_window = datetime.timedelta(seconds=lookup_window_sec)
+        self.lookup_window = timedelta(seconds=lookup_window_sec)
         self.depth_level = depth_level
 
     def evaluate(self, orders: List[Order], trades: List[Trade], market_depth: List[MarketDepth]) -> List[Dict]:
@@ -84,20 +84,21 @@ class SmokingRuleEngine:
             far_side_orders = [
                 o for o in orders
                 if o.Side == opposite_side and
-                o.InstrumentCode == instrument and
-                o.MarketId == venue and
-                o.ReceivedTime >= event_time and
-                o.ReceivedTime <= event_time + self.lookup_window and
-                o.BaseCcyQty <= self.far_threshold
+                   o.InstrumentCode == instrument and
+                   o.MarketId == venue and
+                   o.ReceivedTime >= event_time and
+                   o.ReceivedTime <= event_time + self.lookup_window and
+                   o.BaseCcyQty <= self.far_threshold
             ]
 
             for far_order in far_side_orders:
                 depth = [
                     d for d in market_depth
                     if d.InstrumentCode == instrument and
-                    d.VenueId == venue and
-                    d.BookLevel == self.depth_level
+                       d.VenueId == venue and
+                       d.BookLevel == self.depth_level
                 ]
+
                 if not depth:
                     alerts.append(self.create_alert(event, far_order, "Market depth missing"))
                     continue
@@ -116,7 +117,7 @@ class SmokingRuleEngine:
         return {
             'AlertId': hash((near_event, far_order)),
             'ScenarioId': 'Smoking',
-            'AlertTimestamp': datetime.datetime.now(),
+            'AlertTimestamp': datetime.now(),
             'PartyId': getattr(near_event, 'PartyId', 'N/A'),
             'MarketId': near_event.MarketId,
             'InstrumentId': near_event.InstrumentCode,
