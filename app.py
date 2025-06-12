@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 import pandas as pd
 from data_generator import (
@@ -10,7 +11,6 @@ from data_generator import (
 )
 from rule_engine import SmokingRuleEngine, Order, Trade, MarketDepth
 
-# Streamlit UI setup
 st.set_page_config(page_title="Market Abuse Scenario Simulator", layout="wide")
 st.title("Market Abuse Scenario Simulator")
 
@@ -28,7 +28,6 @@ uploaded_orders = st.sidebar.file_uploader("Upload Orders CSV", type=["csv"])
 uploaded_trades = st.sidebar.file_uploader("Upload Trades CSV", type=["csv"])
 uploaded_depth = st.sidebar.file_uploader("Upload Market Depth CSV", type=["csv"])
 
-# Run simulation
 if st.sidebar.button("Run Simulation"):
     # Market Depth
     if uploaded_depth is not None:
@@ -94,3 +93,4 @@ if st.sidebar.button("Run Simulation"):
     st.download_button("Download Simulated Orders as CSV", data=csv_orders, file_name="simulated_orders.csv", mime="text/csv")
 else:
     st.info("Adjust the settings in the sidebar and click 'Run Simulation' to begin.")
+
