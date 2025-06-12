@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 import datetime
 from typing import List, Dict
-
 
 @dataclass(frozen=True)
 class Order:
@@ -16,7 +15,6 @@ class Order:
     InstrumentCode: str
     ReceivedTime: datetime.datetime
 
-
 @dataclass(frozen=True)
 class Trade:
     TradeId: str
@@ -27,7 +25,6 @@ class Trade:
     MarketId: str
     InstrumentCode: str
     ReceivedTime: datetime.datetime
-
 
 @dataclass(frozen=True)
 class MarketDepth:
@@ -42,7 +39,6 @@ class MarketDepth:
     FeedId: str
     BaseCcyQuantity: float
 
-
 @dataclass
 class Alert:
     AlertId: int
@@ -54,7 +50,6 @@ class Alert:
     Desk: str
     Trader: str
     AlertDescription: str
-
 
 class SmokingRuleEngine:
     def __init__(self, trade_inclusion_flag=True, near_threshold=5_000_000, far_threshold=5_000_000,
@@ -73,6 +68,7 @@ class SmokingRuleEngine:
             for trade in trades:
                 if trade.EventType in ['TN', 'TR'] and trade.BaseCcyValue > self.near_threshold:
                     near_side_events.append(trade)
+
         for order in orders:
             if order.EventType in ['Filled', 'Partially Filled']:
                 notional = order.BaseCcyQty if order.EventType == 'Filled' else order.BaseCcyQty - order.BaseCcyLeavesQty
@@ -88,19 +84,19 @@ class SmokingRuleEngine:
             far_side_orders = [
                 o for o in orders
                 if o.Side == opposite_side and
-                   o.InstrumentCode == instrument and
-                   o.MarketId == venue and
-                   o.ReceivedTime >= event_time and
-                   o.ReceivedTime <= event_time + self.lookup_window and
-                   o.BaseCcyQty <= self.far_threshold
+                o.InstrumentCode == instrument and
+                o.MarketId == venue and
+                o.ReceivedTime >= event_time and
+                o.ReceivedTime <= event_time + self.lookup_window and
+                o.BaseCcyQty <= self.far_threshold
             ]
 
             for far_order in far_side_orders:
                 depth = [
                     d for d in market_depth
                     if d.InstrumentCode == instrument and
-                       d.VenueId == venue and
-                       d.BookLevel == self.depth_level
+                    d.VenueId == venue and
+                    d.BookLevel == self.depth_level
                 ]
                 if not depth:
                     alerts.append(self.create_alert(event, far_order, "Market depth missing"))
@@ -128,4 +124,3 @@ class SmokingRuleEngine:
             'Trader': 'N/A',
             'AlertDescription': reason
         }
-
