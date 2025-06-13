@@ -84,6 +84,7 @@ class SmokingRuleEngine:
 
         if self.trade_inclusion_flag and trades:
             for trade in trades:
+                if trade.Price is not None and trade.Quantity is not None:
                 if trade.Price > 100 and trade.Quantity > 50:
                     alerts.append({
                         "Alert ID": f"T-{trade.TradeId}",
