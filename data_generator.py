@@ -1,29 +1,35 @@
 import pandas as pd
 import numpy as np
 import random
+from datetime import datetime
 
 def simulate_data(order_count=10, trade_count=10, orders_df=None, trades_df=None, market_depth_df=None):
     # Helper function to generate a single alert-triggering order
     def generate_order(i):
         return {
-            "OrderID": f"O{i+1}",
-            "Trader": f"Trader_{random.randint(1, 5)}",
-            "Instrument": "XYZ",
-            "Price": round(random.uniform(101, 150), 2),
-            "BaseCcyQty": random.randint(51, 100),
+            "OrderId": f"O{i+1}",
+            "EventType": "New",
             "Side": random.choice(["Buy", "Sell"]),
+            "BaseCcyQty": random.randint(51, 100),
+            "BaseCcyLeavesQty": 0,
+            "CumulativeQty": 0,
+            "Price": round(random.uniform(101, 150), 2),
+            "MarketId": "MKT1",
+            "InstrumentCode": "XYZ",
+            "ReceivedTime": datetime.now(),
             "simulated": True
         }
 
     # Helper function to generate a single alert-triggering trade
     def generate_trade(i):
         return {
-            "TradeID": f"T{i+1}",
-            "Trader": f"Trader_{random.randint(1, 5)}",
-            "Instrument": "XYZ",
+            "TradeId": f"T{i+1}",
+            "Side": random.choice(["Buy", "Sell"]),
             "Price": round(random.uniform(101, 150), 2),
             "Quantity": random.randint(51, 100),
-            "Side": random.choice(["Buy", "Sell"]),
+            "MarketId": "MKT1",
+            "InstrumentCode": "XYZ",
+            "TradeTime": datetime.now(),
             "simulated": True
         }
 
