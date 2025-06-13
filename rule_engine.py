@@ -55,22 +55,23 @@ class SmokingRuleEngine:
             alert_triggered = False
             reason = []
 
-        if order.Price is not None and order.BaseCcyQty is not None
-            if order.Price > 100 and order.BaseCcyQty > 50:
-                alert_triggered = True
-                reason.append("Price > 100 and BaseCcyQty > 50")
+            if order.Price is not None and order.BaseCcyQty is not None:
+                if order.Price > 100 and order.BaseCcyQty > 50:
+                    alert_triggered = True
+                    reason.append("Price > 100 and BaseCcyQty > 50")
 
             # Market depth rule
             depth_key = (order.MarketId, order.InstrumentCode)
             if depth_key in depth_lookup:
                 best_depth = depth_lookup[depth_key]
-            if order.Price is not None and best_depth.ask_price is not None:
-                if order.Side == "Buy" and order.Price > best_depth.ask_price:
-                    alert_triggered = True
-                    reason.append("Buy order price > best ask")
-                elif order.Side == "Sell" and order.Price < best_depth.bid_price:
-                    alert_triggered = True
-                    reason.append("Sell order price < best bid")
+                if order.Price is not None and best_depth.ask_price is not None:
+                    if order.Side == "Buy" and order.Price > best_depth.ask_price:
+                        alert_triggered = True
+                        reason.append("Buy order price > best ask")
+                if order.Price is not None and best_depth.bid_price is not None:
+                    if order.Side == "Sell" and order.Price < best_depth.bid_price:
+                        alert_triggered = True
+                        reason.append("Sell order price < best bid")
 
             if alert_triggered:
                 alerts.append({
@@ -87,16 +88,16 @@ class SmokingRuleEngine:
         if self.trade_inclusion_flag and trades:
             for trade in trades:
                 if trade.Price is not None and trade.Quantity is not None:
-                if trade.Price > 100 and trade.Quantity > 50:
-                    alerts.append({
-                        "Alert ID": f"T-{trade.TradeId}",
-                        "Type": "Smoking",
-                        "Triggered By": "Trade",
-                        "Instrument": trade.InstrumentCode,
-                        "Market": trade.MarketId,
-                        "Time": trade.TradeTime,
-                        "Reason": "Price > 100 and Quantity > 50",
-                        "Triggering Trade": json.dumps(trade.__dict__, default=str)
-                    })
+                    if trade.Price > 100 and trade.Quantity > 50:
+                        alerts.append({
+                            "Alert ID": f"T-{trade.TradeId}",
+                            "Type": "Smoking",
+                            "Triggered By": "Trade",
+                            "Instrument": trade.InstrumentCode,
+                            "Market": trade.MarketId,
+                            "Time": trade.TradeTime,
+                            "Reason": "Price > 100 and Quantity > 50",
+                            "Triggering Trade": json.dumps(trade.__dict__, default=str)
+                        })
 
         return pd.DataFrame(alerts)
