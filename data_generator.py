@@ -1,38 +1,55 @@
 import pandas as pd
 import numpy as np
+import random
 
-def simulate_data(orders_df=None, trades_df=None, depth_df=None, include_trades=True):
-    """
-    Simulates alert-triggering data from uploaded orders and market depth.
-    Adjusts prices and quantities to meet alert thresholds.
-    """
-    simulated_orders = pd.DataFrame()
-    simulated_trades = pd.DataFrame()
-    simulated_depth = pd.DataFrame()
+def simulate_data(order_count=10, trade_count=10, orders_df=None, trades_df=None, market_depth_df=None):
+    # Helper function to generate a single alert-triggering order
+    def generate_order(i):
+        return {
+            "OrderID": f"O{i+1}",
+            "Trader": f"Trader_{random.randint(1, 5)}",
+            "Instrument": "XYZ",
+            "Price": round(random.uniform(101, 150), 2),
+            "BaseCcyQty": random.randint(51, 100),
+            "Side": random.choice(["Buy", "Sell"]),
+            "simulated": True
+        }
 
-    # Simulate orders
+    # Helper function to generate a single alert-triggering trade
+    def generate_trade(i):
+        return {
+            "TradeID": f"T{i+1}",
+            "Trader": f"Trader_{random.randint(1, 5)}",
+            "Instrument": "XYZ",
+            "Price": round(random.uniform(101, 150), 2),
+            "Quantity": random.randint(51, 100),
+            "Side": random.choice(["Buy", "Sell"]),
+            "simulated": True
+        }
+
+    # Generate or replicate orders
     if orders_df is not None and not orders_df.empty:
-        simulated_orders = orders_df.copy()
-        simulated_orders["Price"] = 105.0  # Ensure price > 100
-        simulated_orders["BaseCcyQty"] = 100.0  # Ensure quantity > 50
-        simulated_orders["BaseCcyLeavesQty"] = 50.0
-        simulated_orders["CumulativeQty"] = 50.0
-        simulated_orders["simulated"] = True
+        orders_df = orders_df.copy()
+        orders_df["simulated"] = True
+        orders_df["Price"] = orders_df["Price"].apply(lambda x: max(x, 101))
+        orders_df["BaseCcyQty"] = orders_df["BaseCcyQty"].apply(lambda x: max(x, 51))
+        orders_df = pd.concat([orders_df] * (order_count // len(orders_df) + 1), ignore_index=True).iloc[:order_count]
+    else:
+        orders_df = pd.DataFrame([generate_order(i) for i in range(order_count)])
 
-    # Simulate trades only if include_trades is True and trades_df is provided
-    if include_trades and trades_df is not None and not trades_df.empty:
-        simulated_trades = trades_df.copy()
-        simulated_trades["Price"] = 105.0
-        simulated_trades["Quantity"] = 100.0
-        simulated_trades["simulated"] = True
+    # Generate or replicate trades
+    if trades_df is not None and not trades_df.empty:
+        trades_df = trades_df.copy()
+        trades_df["simulated"] = True
+        trades_df["Price"] = trades_df["Price"].apply(lambda x: max(x, 101))
+        trades_df["Quantity"] = trades_df["Quantity"].apply(lambda x: max(x, 51))
+        trades_df = pd.concat([trades_df] * (trade_count // len(trades_df) + 1), ignore_index=True).iloc[:trade_count]
+    else:
+        trades_df = pd.DataFrame([generate_trade(i) for i in range(trade_count)])
 
-    # Simulate market depth
-    if depth_df is not None and not depth_df.empty:
-        simulated_depth = depth_df.copy()
-        if "bid_price" in simulated_depth.columns:
-            simulated_depth["bid_price"] = simulated_depth["bid_price"] * np.random.uniform(0.98, 1.02, len(simulated_depth))
-        if "ask_price" in simulated_depth.columns:
-            simulated_depth["ask_price"] = simulated_depth["ask_price"] * np.random.uniform(0.98, 1.02, len(simulated_depth))
-        simulated_depth["simulated"] = True
+    # Market depth remains unchanged
+    if market_depth_df is not None:
+        market_depth_df = market_depth_df.copy()
+        market_depth_df["simulated"] = True
 
-    return simulated_orders, simulated_trades, simulated_depth
+    return orders_df, trades_df, market_depth_df
