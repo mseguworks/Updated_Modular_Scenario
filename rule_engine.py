@@ -55,6 +55,7 @@ class SmokingRuleEngine:
             alert_triggered = False
             reason = []
 
+        if order.Price is not None and order.BaseCcyQty is not None
             if order.Price > 100 and order.BaseCcyQty > 50:
                 alert_triggered = True
                 reason.append("Price > 100 and BaseCcyQty > 50")
@@ -63,6 +64,7 @@ class SmokingRuleEngine:
             depth_key = (order.MarketId, order.InstrumentCode)
             if depth_key in depth_lookup:
                 best_depth = depth_lookup[depth_key]
+            if order.Price is not None and best_depth.ask_price is not None:
                 if order.Side == "Buy" and order.Price > best_depth.ask_price:
                     alert_triggered = True
                     reason.append("Buy order price > best ask")
