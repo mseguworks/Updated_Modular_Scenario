@@ -87,4 +87,61 @@ if generate_button:
     if simulated_depth is not None and not simulated_depth.empty:
         st.subheader("Simulated Market Depth")
         st.dataframe(simulated_depth)
-        csv =
+        csv = simulated_depth.to_csv(index=False).encode('utf-8')
+        st.download_button("Download Simulated Market Depth", csv, "simulated_depth.csv", "text/csv")
+
+    st.subheader("Generated Alerts")
+    try:
+        orders_list = convert_to_dataclass_list(simulated_orders, Order)
+        trades_list = convert_to_dataclass_list(simulated_trades, Trade) if include_trades else []
+        depth_list = convert_to_dataclass_list(simulated_depth, MarketDepth)
+
+        class SmokingRuleEngineWithDetails(SmokingRuleEngine):
+            def evaluate_alerts(self, orders, trades, market_depth):
+                alerts = []
+                for order in orders:
+                    if order.Price > 100 and order.BaseCcyQty > 50:
+                        alerts.append({
+                            "Alert ID": f"A-{order.OrderId}",
+                            "Type": "Smoking",
+                            "Triggered By": "Order",
+                            "Instrument": order.InstrumentCode,
+                            "Market": order.MarketId,
+                            "Time": order.ReceivedTime,
+                            "Triggering Order": json.dumps(order.__dict__, default=str)
+                        })
+                if self.trade_inclusion_flag:
+                    for trade in trades:
+                        if trade.Price > 100 and trade.Quantity > 50:
+                            alerts.append({
+                                "Alert ID": f"T-{trade.TradeId}",
+                                "Type": "Smoking",
+                                "Triggered By": "Trade",
+                                "Instrument": trade.InstrumentCode,
+                                "Market": trade.MarketId,
+                                "Time": trade.TradeTime,
+                                "Triggering Trade": json.dumps(trade.__dict__, default=str)
+                            })
+                return pd.DataFrame(alerts)
+
+        engine = SmokingRuleEngineWithDetails(trade_inclusion_flag=include_trades)
+        alerts = engine.evaluate_alerts(orders_list, trades_list, depth_list)
+
+        if alerts is not None and not alerts.empty:
+            for _, row in alerts.iterrows():
+                with st.expander(f"Alert {row['Alert ID']} - {row['Type']}"):
+                    st.write("**Triggered By:**", row["Triggered By"])
+                    st.write("**Instrument:**", row["Instrument"])
+                    st.write("**Market:**", row["Market"])
+                    st.write("**Time:**", row["Time"])
+                    if row["Triggered By"] == "Order":
+                        st.json(json.loads(row["Triggering Order"]))
+                    elif row["Triggered By"] == "Trade":
+                        st.json(json.loads(row["Triggering Trade"]))
+
+            csv = alerts.to_csv(index=False).encode('utf-8')
+            st.download_button("Download Alerts", csv, "alerts.csv", "text/csv")
+        else:
+            st.info("No alerts generated.")
+    except Exception as e:
+        st.error(f"Error during alert evaluation: {e}")
