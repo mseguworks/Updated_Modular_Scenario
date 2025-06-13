@@ -1,119 +1,49 @@
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-import uuid
 
-# Load uploaded files
-orders_df = pd.read_csv("Test_orders.csv")
-trades_df = pd.read_csv("Test_Trade.csv")
-depth_df = pd.read_csv("Test_MarketDepth.csv")
+def simulate_data(orders_df=None, trades_df=None, depth_df=None, include_trades=True):
+    """
+    Simulates alert-triggering data based on uploaded inputs and trade inclusion toggle.
 
-# Normalize timestamps
-def parse_time(ts):
-    try:
-        return pd.to_datetime(ts)
-    except:
-        return datetime.now()
+    Parameters:
+    - orders_df (pd.DataFrame): Uploaded order data
+    - trades_df (pd.DataFrame): Uploaded trade data
+    - depth_df (pd.DataFrame): Uploaded market depth data
+    - include_trades (bool): Whether to include trades in alert evaluation
 
-orders_df['ReceivedTime'] = orders_df['ReceivedTime'].apply(parse_time)
-trades_df['ReceivedTime'] = trades_df['ReceivedTime'].apply(parse_time)
-depth_df['ReceivedTime'] = depth_df['ReceivedTime'].apply(parse_time)
-depth_df['MarketTimestamp'] = depth_df['MarketTimestamp'].apply(parse_time)
+    Returns:
+    - simulated_orders (pd.DataFrame)
+    - simulated_trades (pd.DataFrame)
+    - simulated_depth (pd.DataFrame)
+    """
 
-# Simulate alert-triggering order + depth
-def simulate_alert_orders(orders_df, depth_df):
-    base_columns = orders_df.columns
-    simulated_orders = []
+    simulated_orders = pd.DataFrame()
+    simulated_trades = pd.DataFrame()
+    simulated_depth = pd.DataFrame()
 
-    # Near-side Buy order
-    near_order = orders_df.iloc[0].copy()
-    near_order['OrderId'] = str(uuid.uuid4())
-    near_order['EventType'] = 'Filled'
-    near_order['Side'] = 'Buy'
-    near_order['BaseCcyQty'] = 2_000_000
-    near_order['BaseCcyLeavesQty'] = 0
-    near_order['CumulativeQty'] = 2_000_000
-    near_order['Price'] = 100.0
-    near_order['ReceivedTime'] = datetime.now()
+    # Simulate orders if orders_df is provided
+    if orders_df is not None and not orders_df.empty:
+        simulated_orders = orders_df.copy()
+        simulated_orders["simulated"] = True
+        simulated_orders["price"] = simulated_orders["price"] * np.random.uniform(0.95, 1.05, len(simulated_orders))
+        simulated_orders["quantity"] = simulated_orders["quantity"] + np.random.randint(-10, 10, len(simulated_orders))
+        simulated_orders["notional"] = simulated_orders["price"] * simulated_orders["quantity"]
 
-    # Far-side Sell order
-    far_order = orders_df.iloc[0].copy()
-    far_order['OrderId'] = str(uuid.uuid4())
-    far_order['EventType'] = 'New'
-    far_order['Side'] = 'Sell'
-    far_order['BaseCcyQty'] = 500_000
-    far_order['BaseCcyLeavesQty'] = 500_000
-    far_order['CumulativeQty'] = 0
-    far_order['Price'] = 99.5
-    far_order['ReceivedTime'] = near_order['ReceivedTime'] + timedelta(seconds=10)
+    # Simulate trades if trades_df is provided and toggle is enabled
+    if include_trades and trades_df is not None and not trades_df.empty:
+        simulated_trades = trades_df.copy()
+        simulated_trades["simulated"] = True
+        simulated_trades["price"] = simulated_trades["price"] * np.random.uniform(0.95, 1.05, len(simulated_trades))
+        simulated_trades["quantity"] = simulated_trades["quantity"] + np.random.randint(-5, 5, len(simulated_trades))
+        simulated_trades["notional"] = simulated_trades["price"] * simulated_trades["quantity"]
 
-    simulated_orders.append(near_order)
-    simulated_orders.append(far_order)
+    # Simulate market depth if depth_df is provided
+    if depth_df is not None and not depth_df.empty:
+        simulated_depth = depth_df.copy()
+        simulated_depth["simulated"] = True
+        if "bid_price" in simulated_depth.columns:
+            simulated_depth["bid_price"] = simulated_depth["bid_price"] * np.random.uniform(0.98, 1.02, len(simulated_depth))
+        if "ask_price" in simulated_depth.columns:
+            simulated_depth["ask_price"] = simulated_depth["ask_price"] * np.random.uniform(0.98, 1.02, len(simulated_depth))
 
-    return pd.DataFrame(simulated_orders)[base_columns]
-
-# Simulate alert-triggering trade + depth
-def simulate_alert_trades(trades_df, depth_df):
-    base_columns = trades_df.columns
-    simulated_trades = []
-
-    # Near-side Buy trade
-    near_trade = trades_df.iloc[0].copy()
-    near_trade['TradeId'] = str(uuid.uuid4())
-    near_trade['EventType'] = 'TN'
-    near_trade['Side'] = 'Buy'
-    near_trade['BaseCcyValue'] = 2_000_000
-    near_trade['Price'] = 100.0
-    near_trade['ReceivedTime'] = datetime.now()
-
-    simulated_trades.append(near_trade)
-
-    return pd.DataFrame(simulated_trades)[base_columns]
-
-# Simulate alert-triggering market depth
-def simulate_alert_depth(depth_df):
-    base_columns = depth_df.columns
-    simulated_depth = []
-
-    # Best bid
-    bid = depth_df.iloc[0].copy()
-    bid['Side'] = 'Buy'
-    bid['Price'] = 99.0
-    bid['Quantity'] = 100000
-    bid['BookLevel'] = 1
-    bid['MarketTimestamp'] = datetime.now()
-    bid['ReceivedTime'] = datetime.now()
-
-    # Best ask
-    ask = depth_df.iloc[0].copy()
-    ask['Side'] = 'Sell'
-    ask['Price'] = 101.0
-    ask['Quantity'] = 100000
-    ask['BookLevel'] = 1
-    ask['MarketTimestamp'] = datetime.now()
-    ask['ReceivedTime'] = datetime.now()
-
-    simulated_depth.append(bid)
-    simulated_depth.append(ask)
-
-    return pd.DataFrame(simulated_depth)[base_columns]
-
-# Simulate based on trade inclusion flag
-trade_inclusion_flag = True  # Toggle this to False to simulate only orders + depth
-
-if trade_inclusion_flag:
-    simulated_orders = simulate_alert_orders(orders_df, depth_df)
-    simulated_trades = simulate_alert_trades(trades_df, depth_df)
-    simulated_depth = simulate_alert_depth(depth_df)
-else:
-    simulated_orders = simulate_alert_orders(orders_df, depth_df)
-    simulated_trades = pd.DataFrame(columns=trades_df.columns)
-    simulated_depth = simulate_alert_depth(depth_df)
-
-# Save simulated data
-simulated_orders.to_csv("simulated_orders.csv", index=False)
-simulated_trades.to_csv("simulated_trades.csv", index=False)
-simulated_depth.to_csv("simulated_market_depth.csv", index=False)
-
-print("Simulated alert-triggering data generated and saved.")
-
+    return simulated_orders, simulated_trades, simulated_depth
