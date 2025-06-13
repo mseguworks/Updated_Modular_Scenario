@@ -6,10 +6,8 @@ from rule_engine import SmokingRuleEngine, Order, Trade, MarketDepth
 from data_generator import simulate_data
 import dataclasses
 
-# Streamlit App Title
 st.title("Cloud-Hosted Trade Surveillance Test Platform")
 
-# Sidebar for file uploads and toggle
 st.sidebar.header("Upload Input Data")
 order_file = st.sidebar.file_uploader("Upload Order Data (CSV)", type="csv")
 trade_file = st.sidebar.file_uploader("Upload Trade Data (CSV)", type="csv")
@@ -17,18 +15,15 @@ depth_file = st.sidebar.file_uploader("Upload Market Depth Data (CSV)", type="cs
 include_trades = st.sidebar.checkbox("Include Trades in Alert Evaluation", value=True)
 generate_button = st.sidebar.button("Generate Alert-Triggering Data")
 
-# Function to read uploaded CSVs
 def read_csv(file):
     if file is not None:
         return pd.read_csv(file)
     return pd.DataFrame()
 
-# Read uploaded files
 orders_df = read_csv(order_file)
 trades_df = read_csv(trade_file)
 depth_df = read_csv(depth_file)
 
-# Display uploaded data
 st.header("Uploaded Data Preview")
 if not orders_df.empty:
     st.subheader("Orders")
@@ -40,7 +35,6 @@ if not depth_df.empty:
     st.subheader("Market Depth")
     st.dataframe(depth_df)
 
-# Helper function to safely convert DataFrame rows to dataclass instances
 def convert_to_dataclass_list(df, cls):
     if df.empty:
         return []
@@ -60,16 +54,13 @@ def convert_to_dataclass_list(df, cls):
         cleaned.append(cls(**filtered))
     return cleaned
 
-# Generate and display simulated data and alerts
 if generate_button:
     st.header("Simulated Data and Alerts")
 
-    # Simulate data
     simulated_orders, simulated_trades, simulated_depth = simulate_data(
         orders_df, trades_df, depth_df, include_trades
     )
 
-    # Display simulated data
     if not simulated_orders.empty:
         st.subheader("Simulated Orders")
         st.dataframe(simulated_orders)
@@ -88,7 +79,6 @@ if generate_button:
         csv = simulated_depth.to_csv(index=False).encode('utf-8')
         st.download_button("Download Simulated Market Depth", csv, "simulated_depth.csv", "text/csv")
 
-    # Evaluate alerts
     st.subheader("Generated Alerts")
     try:
         orders_list = convert_to_dataclass_list(simulated_orders, Order)
