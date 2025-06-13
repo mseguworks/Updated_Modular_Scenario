@@ -1,6 +1,7 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from typing import List, Dict
+from datetime import datetime
+from typing import List, Optional
+import pandas as pd
 
 @dataclass(frozen=True)
 class Order:
@@ -14,114 +15,55 @@ class Order:
     MarketId: str
     InstrumentCode: str
     ReceivedTime: datetime
+    SeqNum: Optional[int] = None
 
 @dataclass(frozen=True)
 class Trade:
     TradeId: str
-    EventType: str
-    Side: str
-    BaseCcyValue: float
-    Price: float
-    MarketId: str
-    InstrumentCode: str
-    ReceivedTime: datetime
-
-@dataclass(frozen=True)
-class MarketDepth:
-    InstrumentCode: str
-    VenueId: str
-    MarketTimestamp: datetime
-    BookLevel: int
     Side: str
     Price: float
     Quantity: float
-    ReceivedTime: datetime
-    FeedId: str
-    BaseCcyQuantity: float
-
-@dataclass
-class Alert:
-    AlertId: int
-    ScenarioId: str
-    AlertTimestamp: datetime
-    PartyId: str
     MarketId: str
-    InstrumentId: str
-    Desk: str
-    Trader: str
-    AlertDescription: str
+    InstrumentCode: str
+    TradeTime: datetime
+    SeqNum: Optional[int] = None
+
+@dataclass(frozen=True)
+class MarketDepth:
+    MarketId: str
+    InstrumentCode: str
+    bid_price: float
+    ask_price: float
+    DepthTime: datetime
 
 class SmokingRuleEngine:
-    def __init__(self, trade_inclusion_flag=True, near_threshold=1_000_000, far_threshold=1_000_000,
-                 lookup_window_sec=45, depth_level=1):
+    def __init__(self, trade_inclusion_flag=True):
         self.trade_inclusion_flag = trade_inclusion_flag
-        self.near_threshold = near_threshold
-        self.far_threshold = far_threshold
-        self.lookup_window = timedelta(seconds=lookup_window_sec)
-        self.depth_level = depth_level
 
-    def evaluate(self, orders: List[Order], trades: List[Trade], market_depth: List[MarketDepth]) -> List[Dict]:
+    def evaluate_alerts(self, orders: List[Order], trades: List[Trade], depth: List[MarketDepth]) -> pd.DataFrame:
         alerts = []
-        near_side_events = []
+
+        for order in orders:
+            if order.Price > 100 and order.BaseCcyQty > 50:
+                alerts.append({
+                    "Alert ID": f"A-{order.OrderId}",
+                    "Type": "Smoking",
+                    "Triggered By": "Order",
+                    "Instrument": order.InstrumentCode,
+                    "Market": order.MarketId,
+                    "Time": order.ReceivedTime
+                })
 
         if self.trade_inclusion_flag:
             for trade in trades:
-                if trade.EventType in ['TN', 'TR'] and trade.BaseCcyValue > self.near_threshold:
-                    near_side_events.append(trade)
+                if trade.Price > 100 and trade.Quantity > 50:
+                    alerts.append({
+                        "Alert ID": f"T-{trade.TradeId}",
+                        "Type": "Smoking",
+                        "Triggered By": "Trade",
+                        "Instrument": trade.InstrumentCode,
+                        "Market": trade.MarketId,
+                        "Time": trade.TradeTime
+                    })
 
-        for order in orders:
-            if order.EventType in ['Filled', 'Partially Filled']:
-                notional = order.BaseCcyQty if order.EventType == 'Filled' else order.BaseCcyQty - order.BaseCcyLeavesQty
-                if notional > self.near_threshold:
-                    near_side_events.append(order)
-
-        for event in near_side_events:
-            opposite_side = 'Sell' if event.Side == 'Buy' else 'Buy'
-            event_time = event.ReceivedTime
-            instrument = event.InstrumentCode
-            venue = event.MarketId
-
-            far_side_orders = [
-                o for o in orders
-                if o.Side == opposite_side and
-                   o.InstrumentCode == instrument and
-                   o.MarketId == venue and
-                   o.ReceivedTime >= event_time and
-                   o.ReceivedTime <= event_time + self.lookup_window and
-                   o.BaseCcyQty <= self.far_threshold
-            ]
-
-            for far_order in far_side_orders:
-                depth = [
-                    d for d in market_depth
-                    if d.InstrumentCode == instrument and
-                       d.VenueId == venue and
-                       d.BookLevel == self.depth_level
-                ]
-
-                if not depth:
-                    alerts.append(self.create_alert(event, far_order, "Market depth missing"))
-                    continue
-
-                best_bid = max((d.Price for d in depth if d.Side == 'Buy'), default=None)
-                best_ask = min((d.Price for d in depth if d.Side == 'Sell'), default=None)
-
-                if event.Side == 'Buy' and far_order.Price >= (best_bid or 0):
-                    alerts.append(self.create_alert(event, far_order, "Buy price >= best bid"))
-                elif event.Side == 'Sell' and far_order.Price <= (best_ask or float('inf')):
-                    alerts.append(self.create_alert(event, far_order, "Sell price <= best ask"))
-
-        return alerts
-
-    def create_alert(self, near_event, far_order, reason) -> Dict:
-        return {
-            'AlertId': hash((near_event, far_order)),
-            'ScenarioId': 'Smoking',
-            'AlertTimestamp': datetime.now(),
-            'PartyId': getattr(near_event, 'PartyId', 'N/A'),
-            'MarketId': near_event.MarketId,
-            'InstrumentId': near_event.InstrumentCode,
-            'Desk': 'N/A',
-            'Trader': 'N/A',
-            'AlertDescription': reason
-        }
+        return pd.DataFrame(alerts)
