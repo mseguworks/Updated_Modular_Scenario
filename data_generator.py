@@ -13,6 +13,8 @@ def simulate_data(order_count=10, trade_count=10, orders_df=None, trades_df=None
             orders_df = pd.concat([orders_df] * (order_count // len(orders_df) + 1), ignore_index=True).iloc[:order_count]
         else:
             orders_df = orders_df.sample(n=order_count, random_state=1).reset_index(drop=True)
+    else:
+        orders_df = None
 
     # Adjust trades to meet alert-triggering thresholds
     if trades_df is not None and not trades_df.empty:
@@ -26,10 +28,14 @@ def simulate_data(order_count=10, trade_count=10, orders_df=None, trades_df=None
             trades_df = pd.concat([trades_df] * (trade_count // len(trades_df) + 1), ignore_index=True).iloc[:trade_count]
         else:
             trades_df = trades_df.sample(n=trade_count, random_state=1).reset_index(drop=True)
+    else:
+        trades_df = None
 
     # Mark market depth as simulated if provided
     if market_depth_df is not None and not market_depth_df.empty:
         market_depth_df = market_depth_df.copy()
         market_depth_df["simulated"] = True
+    else:
+        market_depth_df = None
 
     return orders_df, trades_df, market_depth_df
