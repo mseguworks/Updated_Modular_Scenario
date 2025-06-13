@@ -6,7 +6,7 @@ from rule_engine import SmokingRuleEngine, Order, Trade, MarketDepth
 from data_generator import simulate_data
 import dataclasses
 
-st.title("Cloud-Hosted Trade Surveillance Test Platform")
+st.title("Test Data Simulator for Market Abuse Scenarios")
 
 st.sidebar.header("Upload Input Data")
 order_file = st.sidebar.file_uploader("Upload Order Data (CSV)", type="csv")
